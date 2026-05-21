@@ -3,6 +3,7 @@ export default {
   directions: [
     {
       label: "Estádio → Barcelinhos",
+      weekendCount: 0,
       stops: [
         { name: "Barcelos (Estádio Nascente)", times: ["06:45","07:15","07:45","08:15","08:45","09:15","09:45","10:15","10:45","11:15","11:45","12:15","12:45","13:15","13:45","14:15","14:45","15:15","15:45","16:15","16:45","17:15","17:45","18:15","18:45","19:15","19:45"] },
         { name: "Lobata", times: null },
@@ -39,6 +40,8 @@ export default {
     },
     {
       label: "Barcelinhos → Estádio",
+      weekendCount: 13,
+      weekendDays: "sáb, dom e feriados",
       stops: [
         { name: "E.Leclerc (Barcelinhos)", times: ["06:40","07:10","07:40","08:10","08:40","09:10","09:40","10:10","10:40","11:10","11:40","12:10","12:40","13:10","13:40","14:10","14:40","15:10","15:40","16:10","16:40","17:10","17:40","18:10","18:40","19:10","19:40","20:10"] },
         { name: "Barcelinhos (Colégio La Salle)", times: null },

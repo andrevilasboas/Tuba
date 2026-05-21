@@ -3,6 +3,8 @@ export default {
   directions: [
     {
       label: "Barcelos → S. Veríssimo",
+      weekendCount: 27,
+      weekendDays: "sábados",
       stops: [
         { name: "Barcelos (Estação)", times: ["07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"] },
         { name: "Barcelos (Bolivar)", times: null },
@@ -24,6 +26,8 @@ export default {
     },
     {
       label: "S. Veríssimo → Barcelos",
+      weekendCount: 14,
+      weekendDays: "sábados",
       stops: [
         { name: "S. Veríssimo (Conservatório)", times: ["07:22","07:52","08:22","08:52","09:22","09:52","10:22","10:52","11:22","11:52","12:22","12:52","13:22","13:52","14:22","14:52","15:22","15:52","16:22","16:52","17:22","17:52","18:22","18:52","19:22","19:52","20:22"] },
         { name: "Pontes I", times: null },

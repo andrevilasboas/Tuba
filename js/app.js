@@ -10,6 +10,7 @@ const DATA = { U1, U2, U3, U4, U5 };
 let selectedLine = null;
 let selectedDir  = 0;
 let selectedStop = null;
+let dayType      = 'weekday'; // 'weekday' | 'weekend'
 
 // ── Responsive helper ─────────────────────────────────────────────────────────
 const isDesktop = () => window.innerWidth >= 768;
@@ -38,31 +39,46 @@ function getNextTime(times) {
   return times?.find(t => parseTime(t) >= now) ?? null;
 }
 
+// ── Day filter ────────────────────────────────────────────────────────────────
+function applyDayFilter(times, dir) {
+  if (!times) return null;
+  if (dayType === 'weekday') return times;
+  const count = dir?.weekendCount || 0;
+  if (count === 0) return null;
+  const sliced = times.slice(0, count);
+  return sliced.length > 0 ? sliced : null;
+}
+
 // ── Interpolation for stops without published times ───────────────────────────
-function getApproxTimes(stops, idx) {
+function getApproxTimes(stops, idx, dir) {
   let prevIdx = -1, nextIdx = -1;
-  for (let i = idx - 1; i >= 0; i--)        { if (stops[i].times) { prevIdx = i; break; } }
+  for (let i = idx - 1; i >= 0; i--)         { if (stops[i].times) { prevIdx = i; break; } }
   for (let i = idx + 1; i < stops.length; i++) { if (stops[i].times) { nextIdx = i; break; } }
 
   if (prevIdx === -1 && nextIdx === -1) return null;
-  if (prevIdx === -1) return { times: stops[nextIdx].times, approx: true };
-  if (nextIdx === -1) return { times: stops[prevIdx].times, approx: true };
 
-  const prev = stops[prevIdx].times;
-  const next = stops[nextIdx].times;
+  const prevTimes = prevIdx >= 0 ? applyDayFilter(stops[prevIdx].times, dir) : null;
+  const nextTimes = nextIdx >= 0 ? applyDayFilter(stops[nextIdx].times, dir) : null;
+
+  if (!prevTimes && !nextTimes) return null;
+  if (!prevTimes) return { times: nextTimes, approx: true };
+  if (!nextTimes) return { times: prevTimes, approx: true };
+
   const frac = (idx - prevIdx) / (nextIdx - prevIdx);
-  const len  = Math.min(prev.length, next.length);
+  const len  = Math.min(prevTimes.length, nextTimes.length);
   const result = [];
   for (let i = 0; i < len; i++) {
-    result.push(minsToStr(Math.round(parseTime(prev[i]) + frac * (parseTime(next[i]) - parseTime(prev[i])))));
+    result.push(minsToStr(Math.round(parseTime(prevTimes[i]) + frac * (parseTime(nextTimes[i]) - parseTime(prevTimes[i])))));
   }
   return { times: result, approx: true };
 }
 
-function getEffectiveTimes(stops, idx) {
-  return stops[idx].times
-    ? { times: stops[idx].times, approx: false }
-    : getApproxTimes(stops, idx);
+function getEffectiveTimes(stops, idx, dir) {
+  if (stops[idx].times) {
+    const filtered = applyDayFilter(stops[idx].times, dir);
+    return filtered ? { times: filtered, approx: false } : null;
+  }
+  return getApproxTimes(stops, idx, dir);
 }
 
 // ── Clock ─────────────────────────────────────────────────────────────────────
@@ -76,7 +92,7 @@ function updateClock() {
 
 // ── Panel visibility ──────────────────────────────────────────────────────────
 function showPanel(id) {
-  if (isDesktop()) return; // desktop always shows all panels
+  if (isDesktop()) return;
   ['panel-lines', 'panel-stops', 'panel-results'].forEach(p => {
     document.getElementById(p).classList.toggle('hidden', p !== id);
   });
@@ -127,9 +143,12 @@ function selectLine(id) {
 function renderDirToggle() {
   const el = document.getElementById('dir-toggle');
   if (!selectedLine) { el.innerHTML = ''; return; }
-  el.innerHTML = DATA[selectedLine].directions.map((d, i) =>
-    `<button class="dir-btn${i === selectedDir ? ' active' : ''}" onclick="selectDir(${i})">${d.label}</button>`
-  ).join('');
+  el.innerHTML = DATA[selectedLine].directions.map((d, i) => {
+    const wkBadge = d.weekendCount
+      ? `<span class="dir-wk-badge">${d.weekendDays || 'fim de semana'}</span>`
+      : '';
+    return `<button class="dir-btn${i === selectedDir ? ' active' : ''}" onclick="selectDir(${i})">${d.label}${wkBadge}</button>`;
+  }).join('');
 }
 
 function selectDir(i) {
@@ -143,10 +162,22 @@ function selectDir(i) {
 // ── Render: stop list ─────────────────────────────────────────────────────────
 function renderStopList() {
   if (!selectedLine) return;
-  const stops = DATA[selectedLine].directions[selectedDir].stops;
-  const now   = nowMinutes();
-  document.getElementById('stop-list').innerHTML = stops.map((s, i) => {
-    const eff  = getEffectiveTimes(stops, i);
+  const dir   = DATA[selectedLine].directions[selectedDir];
+  const stops = dir.stops;
+  const el    = document.getElementById('stop-list');
+
+  if (dayType === 'weekend' && !dir.weekendCount) {
+    el.innerHTML = `<div class="no-service-notice">
+      <div class="ns-icon">🚫</div>
+      <div class="ns-text">Sem serviço ao fim de semana</div>
+      <div class="ns-sub">Esta direção não tem passagens${dir.weekendDays ? '' : ' neste período'}</div>
+    </div>`;
+    return;
+  }
+
+  const now = nowMinutes();
+  el.innerHTML = stops.map((s, i) => {
+    const eff  = getEffectiveTimes(stops, i, dir);
     const next = eff ? getNextTime(eff.times) : null;
     let badge = 'sem mais', cls = 'muted', extra = '';
 
@@ -157,8 +188,8 @@ function renderStopList() {
       if (eff.approx) extra = `<span class="approx-badge">~aprox.</span>`;
     }
 
-    const activeClass   = selectedStop === i ? ' active' : '';
-    const noTimesClass  = !s.times ? ' no-times' : '';
+    const activeClass  = selectedStop === i ? ' active' : '';
+    const noTimesClass = !s.times ? ' no-times' : '';
     return `<div class="stop-item${noTimesClass}${activeClass}" onclick="selectStop(${i})">
       <div class="stop-name">${s.name}${extra}</div>
       <span class="stop-next ${cls}">${badge}</span>
@@ -172,21 +203,30 @@ function clearStops() {
 
 function selectStop(i) {
   selectedStop = i;
-  renderStopList(); // re-render to update active state
+  renderStopList();
   goResults(i);
 }
 
 // ── Render: results panel ─────────────────────────────────────────────────────
 function renderResults() {
   if (selectedStop === null || !selectedLine) return;
-  const stops = DATA[selectedLine].directions[selectedDir].stops;
+  const dir   = DATA[selectedLine].directions[selectedDir];
+  const stops = dir.stops;
   const stop  = stops[selectedStop];
-  const eff   = getEffectiveTimes(stops, selectedStop);
+  const eff   = getEffectiveTimes(stops, selectedStop, dir);
   const now   = nowMinutes();
   const panel = document.getElementById('results-body');
 
-  // Update desktop panel header
   document.getElementById('results-panel-title').textContent = stop.name;
+
+  if (dayType === 'weekend' && !dir.weekendCount) {
+    panel.innerHTML = `<div class="no-service-notice">
+      <div class="ns-icon">🚫</div>
+      <div class="ns-text">Sem serviço ao fim de semana</div>
+      <div class="ns-sub">Esta direção não tem passagens neste período</div>
+    </div>`;
+    return;
+  }
 
   if (!eff) {
     panel.innerHTML = `<p class="no-more">Sem dados de horário para esta paragem.</p>`;
@@ -197,6 +237,12 @@ function renderResults() {
   const upcoming = times.filter(t => parseTime(t) >= now);
   const past     = times.filter(t => parseTime(t) < now);
   let html = '';
+
+  if (dayType === 'weekend' && dir.weekendDays) {
+    html += `<div class="weekend-notice">
+      Horário de <strong>${dir.weekendDays}</strong>
+    </div>`;
+  }
 
   if (approx) {
     html += `<div class="approx-notice">
@@ -244,15 +290,26 @@ function clearResults() {
   document.getElementById('results-panel-title').textContent = 'Horários';
 }
 
+// ── Day type toggle ───────────────────────────────────────────────────────────
+function selectDayType(type) {
+  dayType = type;
+  document.getElementById('btn-weekday').classList.toggle('active', type === 'weekday');
+  document.getElementById('btn-weekend').classList.toggle('active', type === 'weekend');
+  selectedStop = null;
+  if (selectedLine) {
+    renderDirToggle();
+    renderStopList();
+  }
+  clearResults();
+}
+
 // ── Handle resize (mobile ↔ desktop) ─────────────────────────────────────────
 function onResize() {
   if (isDesktop()) {
-    // Ensure all panels visible
     ['panel-lines', 'panel-stops', 'panel-results'].forEach(p =>
       document.getElementById(p).classList.remove('hidden')
     );
   } else {
-    // Restore correct mobile view
     if (selectedStop !== null) showPanel('panel-results');
     else if (selectedLine) showPanel('panel-stops');
     else showPanel('panel-lines');
@@ -260,11 +317,12 @@ function onResize() {
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
-window.selectLine = selectLine;
-window.selectDir  = selectDir;
-window.selectStop = selectStop;
-window.goLines    = goLines;
-window.goStops    = goStops;
+window.selectLine    = selectLine;
+window.selectDir     = selectDir;
+window.selectStop    = selectStop;
+window.selectDayType = selectDayType;
+window.goLines       = goLines;
+window.goStops       = goStops;
 
 renderLineGrid();
 updateClock();

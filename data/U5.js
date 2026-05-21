@@ -3,6 +3,7 @@ export default {
   directions: [
     {
       label: "Barcelinhos → Barcelos",
+      weekendCount: 0,
       stops: [
         { name: "Esc. Rosa Ramalho", times: ["07:15","08:15","09:15","10:15","11:15","12:15","13:15","14:15","15:15","16:15","17:15","18:15","19:15"] },
         { name: "Sr. do Galo", times: null },
@@ -35,6 +36,7 @@ export default {
     },
     {
       label: "Barcelos → Barcelinhos",
+      weekendCount: 0,
       stops: [
         { name: "Barcelos (Cemitério)", times: ["07:48","08:48","09:48","10:48","11:48","12:48","13:48","14:48","15:48","16:48","17:48","18:48","19:48"] },
         { name: "Santa Eugénia (Ponte)", times: null },
