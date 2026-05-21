@@ -1,658 +1,78 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Horários Barcelos">
-<meta name="theme-color" content="#0f172a">
-<title>Horários Barcelos</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  :root{
-    --bg:#0f172a;--surface:#1e293b;--card:#263245;--border:#334155;
-    --text:#f1f5f9;--muted:#94a3b8;--accent:#38bdf8;--green:#4ade80;
-    --yellow:#facc15;--red:#f87171;--radius:16px
-  }
-  html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overscroll-behavior:none}
-  body{display:flex;flex-direction:column;max-width:480px;margin:0 auto;min-height:100dvh}
-
-
-
-  .header{padding:env(safe-area-inset-top) 20px 0;background:var(--bg);position:sticky;top:0;z-index:10}
-  .header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 0 10px}
-  .app-title{font-size:17px;font-weight:700;color:var(--text);letter-spacing:-0.3px}
-  .clock{font-size:22px;font-weight:700;color:var(--accent);font-variant-numeric:tabular-nums;letter-spacing:-0.5px}
-  .header-bar{height:1px;background:var(--border)}
-
-  .main{flex:1;overflow-y:auto;padding:16px 16px calc(env(safe-area-inset-bottom) + 16px)}
-
-  .section-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px}
-  .line-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
-  .line-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:4px}
-  .line-card:active{transform:scale(.97)}
-  .line-num{font-size:26px;font-weight:800;color:var(--accent);letter-spacing:-1px}
-  .line-desc{font-size:11px;color:var(--muted);line-height:1.3;font-weight:500}
-
-  .dir-toggle{display:flex;gap:8px;margin-bottom:16px}
-  .dir-btn{flex:1;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;text-align:center;transition:all .15s;line-height:1.3}
-  .dir-btn:active{transform:scale(.97)}
-  .dir-btn.active{border-color:var(--accent);background:rgba(56,189,248,.1);color:var(--accent)}
-
-  .stop-list{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
-  .stop-item{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:13px 16px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;transition:all .15s}
-  .stop-item:active{transform:scale(.98)}
-  .stop-item.no-times{background:#131f30;border-color:#1e2d3d}
-  .stop-item.no-times .stop-name{color:#5a7a8a}
-  .stop-item.no-times .stop-next{opacity:.7}
-  .stop-name{font-size:14px;font-weight:500;color:var(--text);line-height:1.3;flex:1;min-width:0;padding-right:8px}
-  .stop-next{font-size:12px;font-weight:700;white-space:nowrap;flex-shrink:0}
-  .stop-next.green{color:var(--green)}
-  .stop-next.yellow{color:var(--yellow)}
-  .stop-next.red{color:var(--red)}
-  .stop-next.muted{color:var(--muted)}
-  .approx-badge{font-size:10px;color:var(--muted);font-weight:500;margin-top:2px;display:block}
-
-  .results{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
-  .results-title{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px}
-  .next-bus-hero{background:rgba(56,189,248,.1);border:1.5px solid rgba(56,189,248,.3);border-radius:12px;padding:16px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
-  .next-bus-time{font-size:36px;font-weight:800;color:var(--accent);letter-spacing:-1.5px;font-variant-numeric:tabular-nums}
-  .next-bus-min{font-size:14px;font-weight:700;color:var(--accent);text-align:right}
-  .next-bus-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
-  .approx-notice{background:rgba(250,204,21,.08);border:1px solid rgba(250,204,21,.25);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:var(--yellow);line-height:1.5}
-  .time-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-  .time-chip{padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
-  .time-chip.upcoming{background:var(--card);color:var(--text)}
-  .time-chip.past{color:var(--border);background:transparent}
-  .time-chip.next{background:rgba(74,222,128,.15);color:var(--green);border:1px solid rgba(74,222,128,.3)}
-  .no-more{color:var(--muted);font-size:13px;padding:8px 0}
-  .disclaimer{font-size:11px;color:var(--muted);line-height:1.5;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
-
-  .breadcrumb{display:flex;align-items:center;gap:8px;margin-bottom:14px;cursor:pointer}
-  .breadcrumb-back{font-size:22px;color:var(--accent);line-height:1}
-  .breadcrumb-text{font-size:14px;color:var(--accent);font-weight:600}
-
-  .empty{text-align:center;padding:40px 20px;color:var(--muted)}
-  .empty-icon{font-size:48px;margin-bottom:12px}
-  .empty-text{font-size:15px;font-weight:500}
-  .empty-sub{font-size:13px;margin-top:6px;opacity:.7}
-
-  .hidden{display:none!important}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Horários Barcelos">
+  <meta name="theme-color" content="#0f172a">
+  <title>Horários Barcelos</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<div class="header">
-  <div class="header-inner">
-    <span class="app-title">Transportes Barcelos</span>
-    <span class="clock" id="clock">--:--</span>
-  </div>
-  <div class="header-bar"></div>
-</div>
-
-<div class="main" id="main">
-  <div id="view-lines">
-    <p class="section-label" style="margin-top:14px">Escolhe a linha</p>
-    <div class="line-grid" id="line-grid"></div>
-    <div class="empty">
-      <div class="empty-icon">🚌</div>
-      <div class="empty-text">Seleciona uma linha</div>
-      <div class="empty-sub">para ver paragens e horários</div>
-    </div>
-  </div>
-
-  <div id="view-stops" class="hidden">
-    <div class="breadcrumb" onclick="showLines()">
-      <span class="breadcrumb-back">‹</span>
-      <span class="breadcrumb-text">Linhas</span>
-    </div>
-    <div class="dir-toggle" id="dir-toggle"></div>
-    <p class="section-label">Paragem</p>
-    <div class="stop-list" id="stop-list"></div>
-  </div>
-
-  <div id="view-times" class="hidden">
-    <div class="breadcrumb" onclick="showStops()">
-      <span class="breadcrumb-back">‹</span>
-      <span class="breadcrumb-text" id="breadcrumb-line">Paragens</span>
-    </div>
-    <div class="results" id="results-panel"></div>
-  </div>
-</div>
-
-<script>
-// null = paragem sem horário publicado (autocarro para mas tempo não é preciso)
-  //andre vilas boas
-const DATA = {
-  U1: {
-    name: "Estádio ↔ Barcelinhos",
-    directions: [
-      {
-        label: "Estádio → Barcelinhos",
-        stops: [
-          { name: "Barcelos (Estádio Nascente)", times: ["06:45","07:15","07:45","08:15","08:45","09:15","09:45","10:15","10:45","11:15","11:45","12:15","12:45","13:15","13:45","14:15","14:45","15:15","15:45","16:15","16:45","17:15","17:45","18:15","18:45","19:15","19:45"] },
-          { name: "Lobata", times: null },
-          { name: "Barcelos (Estádio Poente)", times: null },
-          { name: "Vila Boa (X N103)", times: null },
-          { name: "Vila Boa (Igreja)", times: null },
-          { name: "Espírito Santo", times: null },
-          { name: "Igreja", times: null },
-          { name: "Raízes", times: null },
-          { name: "Escola", times: null },
-          { name: "Cooperativa", times: null },
-          { name: "Vermil (Quinta da Cal)", times: ["06:50","07:20","07:50","08:20","08:50","09:20","09:50","10:20","10:50","11:20","11:50","12:20","12:50","13:20","13:50","14:20","14:50","15:20","15:50","16:20","16:50","17:20","17:50","18:20","18:50","19:20","19:50"] },
-          { name: "Barcelos (Olival)", times: null },
-          { name: "Barcelos (Rua Luís de Camões)", times: null },
-          { name: "Barcelos (Rotunda do Professor)", times: null },
-          { name: "Casa S. João de Deus", times: ["06:54","07:24","07:54","08:24","08:54","09:24","09:54","10:24","10:54","11:24","11:54","12:24","12:54","13:24","13:54","14:24","14:54","15:24","15:54","16:24","16:54","17:24","17:54","18:24","18:54","19:24","19:54"] },
-          { name: "Barcelos (Quinta Nova)", times: null },
-          { name: "Barcelos (Finanças)", times: null },
-          { name: "Escola Alcaides de Faria", times: null },
-          { name: "Barcelos (Combatentes)", times: ["06:58","07:28","07:58","08:28","08:58","09:28","09:58","10:28","10:58","11:28","11:58","12:28","12:58","13:28","13:58","14:28","14:58","15:28","15:58","16:28","16:58","17:28","17:58","18:28","18:58","19:28","19:58"] },
-          { name: "Barcelos (Sr. da Cruz)", times: null },
-          { name: "Bagoeira / Campo da Feira", times: null },
-          { name: "H. Trofa Saúde", times: null },
-          { name: "Barcelos (Cemitério)", times: null },
-          { name: "Esc. Sec. Barcelos", times: ["07:02","07:32","08:02","08:32","09:02","09:32","10:02","10:32","11:02","11:32","12:02","12:32","13:02","13:32","14:02","14:32","15:02","15:32","16:02","16:32","17:02","17:32","18:02","18:32","19:02","19:32","20:02"] },
-          { name: "Casa do Rio", times: null },
-          { name: "Barcelos (Câmara Municipal)", times: null },
-          { name: "Barcelinhos (centro)", times: ["07:07","07:37","08:07","08:37","09:07","09:37","10:07","10:37","11:07","11:37","12:07","12:37","13:07","13:37","14:07","14:37","15:07","15:37","16:07","16:37","17:07","17:37","18:07","18:37","19:07","19:37","20:07"] },
-          { name: "Barcelinhos (Quinta do Egipto)", times: null },
-          { name: "Barcelinhos (Fonte Santo António)", times: null },
-          { name: "Barcelinhos (Colégio La Salle)", times: null },
-          { name: "E.Leclerc (Barcelinhos)", times: ["07:10","07:40","08:10","08:40","09:10","09:40","10:10","10:40","11:10","11:40","12:10","12:40","13:10","13:40","14:10","14:40","15:10","15:40","16:10","16:40","17:10","17:40","18:10","18:40","19:10","19:40","20:10"] },
-        ]
-      },
-      {
-        label: "Barcelinhos → Estádio",
-        stops: [
-          { name: "E.Leclerc (Barcelinhos)", times: ["06:40","07:10","07:40","08:10","08:40","09:10","09:40","10:10","10:40","11:10","11:40","12:10","12:40","13:10","13:40","14:10","14:40","15:10","15:40","16:10","16:40","17:10","17:40","18:10","18:40","19:10","19:40","20:10"] },
-          { name: "Barcelinhos (Colégio La Salle)", times: null },
-          { name: "Barcelinhos (Quinta do Egito)", times: null },
-          { name: "Barcelinhos (Largo do Tanque)", times: null },
-          { name: "Barcelinhos (Mira Rio)", times: null },
-          { name: "Esc. Rosa Ramalho (Ida)", times: ["06:44","07:14","07:44","08:14","08:44","09:14","09:44","10:14","10:44","11:14","11:44","12:14","12:44","13:14","13:44","14:14","14:44","15:14","15:44","16:14","16:44","17:14","17:44","18:14","18:44","19:14","19:44","20:14"] },
-          { name: "Carvalhal", times: null },
-          { name: "Barcelinhos (Medros)", times: ["06:47","07:17","07:47","08:17","08:47","09:17","09:47","10:17","10:47","11:17","11:47","12:17","12:47","13:17","13:47","14:17","14:47","15:17","15:47","16:17","16:47","17:17","17:47","18:17","18:47","19:17","19:47","20:17"] },
-          { name: "Barcelinhos (Hospital Particular)", times: null },
-          { name: "Staples", times: null },
-          { name: "Esc. Rosa Ramalho (Volta)", times: ["06:50","07:20","07:50","08:20","08:50","09:20","09:50","10:20","10:50","11:20","11:50","12:20","12:50","13:20","13:50","14:20","14:50","15:20","15:50","16:20","16:50","17:20","17:50","18:20","18:50","19:20","19:50","20:20"] },
-          { name: "Barcelinhos (Mira Rio)", times: null },
-          { name: "Barcelinhos (Largo do Tanque)", times: null },
-          { name: "Barcelinhos (centro)", times: ["06:52","07:22","07:52","08:22","08:52","09:22","09:52","10:22","10:52","11:22","11:52","12:22","12:52","13:22","13:52","14:22","14:52","15:22","15:52","16:22","16:52","17:22","17:52","18:22","18:52","19:22","19:52","20:22"] },
-          { name: "Barcelos (Câmara Municipal)", times: null },
-          { name: "Casa do Rio", times: null },
-          { name: "Esc. Sec. Barcelos", times: ["06:54","07:24","07:54","08:24","08:54","09:24","09:54","10:24","10:54","11:24","11:54","12:24","12:54","13:24","13:54","14:24","14:54","15:24","15:54","16:24","16:54","17:24","17:54","18:24","18:54","19:24","19:54","20:24"] },
-          { name: "Barcelos (Cemitério)", times: null },
-          { name: "H. Trofa Saúde", times: null },
-          { name: "Bagoeira / Campo da Feira", times: null },
-          { name: "Senhor da Cruz", times: null },
-          { name: "Barcelos (Combatentes)", times: ["06:58","07:28","07:58","08:28","08:58","09:28","09:58","10:28","10:58","11:28","11:58","12:28","12:58","13:28","13:58","14:28","14:58","15:28","15:58","16:28","16:58","17:28","17:58","18:28","18:58","19:28","19:58","20:28"] },
-          { name: "Casa S. João de Deus", times: ["07:01","07:31","08:01","08:31","09:01","09:31","10:01","10:31","11:01","11:31","12:01","12:31","13:01","13:31","14:01","14:31","15:01","15:31","16:01","16:31","17:01","17:31","18:01","18:31","19:01","19:31","20:01"] },
-          { name: "Vermil (Quinta da Cal)", times: ["07:04","07:34","08:04","08:34","09:04","09:34","10:04","10:34","11:04","11:34","12:04","12:34","13:04","13:34","14:04","14:34","15:04","15:34","16:04","16:34","17:04","17:34","18:04","18:34","19:04","19:34","20:04"] },
-          { name: "Barcelos (Estádio Nascente)", times: ["07:15","07:45","08:15","08:45","09:15","09:45","10:15","10:45","11:15","11:45","12:15","12:45","13:15","13:45","14:15","14:45","15:15","15:45","16:15","16:45","17:15","17:45","18:15","18:45","19:15","19:45","20:15"] },
-        ]
-      }
-    ]
-  },
-  U2: {
-    name: "Arcozelo ↔ Vila Frescaínha",
-    directions: [
-      {
-        label: "Arcozelo → Vila Frescaínha",
-        stops: [
-          { name: "Arcozelo (Junta de Freguesia)", times: ["07:00","07:20","07:40","08:00","08:20","08:40","09:00","09:20","09:40","10:00","10:20","10:40","11:00","11:20","11:40","12:00","12:20","12:40","13:00","13:20","13:40","14:00","14:20","14:40","15:00","15:20","15:40","16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40","19:00","19:20","19:40","20:00","20:20"] },
-          { name: "Pólo ACIB", times: null },
-          { name: "Arcozelo (Formiga)", times: null },
-          { name: "Arcozelo (Bairro 1.º de Maio)", times: ["07:02","07:22","07:42","08:02","08:22","08:42","09:02","09:22","09:42","10:02","10:22","10:42","11:02","11:22","11:42","12:02","12:22","12:42","13:02","13:22","13:42","14:02","14:22","14:42","15:02","15:22","15:42","16:02","16:22","16:42","17:02","17:22","17:42","18:02","18:22","18:42","19:02","19:22","19:42","20:02","20:22"] },
-          { name: "Arcozelo (Igreja)", times: null },
-          { name: "Arcozelo (Rotunda das Calçadas)", times: null },
-          { name: "Barcelos (Bolivar)", times: null },
-          { name: "Barcelos (Estação)", times: ["07:04","07:24","07:44","08:04","08:24","08:44","09:04","09:24","09:44","10:04","10:24","10:44","11:04","11:24","11:44","12:04","12:24","12:44","13:04","13:24","13:44","14:04","14:24","14:44","15:04","15:24","15:44","16:04","16:24","16:44","17:04","17:24","17:44","18:04","18:24","18:44","19:04","19:24","19:44","20:04","20:24"] },
-          { name: "Barcelos (Torre Ampal)", times: null },
-          { name: "Barcelos (Albergaria)", times: null },
-          { name: "Barcelos (Capuchinhos)", times: null },
-          { name: "Barcelos (Combatentes)", times: ["07:06","07:26","07:46","08:06","08:26","08:46","09:06","09:26","09:46","10:06","10:26","10:46","11:06","11:26","11:46","12:06","12:26","12:46","13:06","13:26","13:46","14:06","14:26","14:46","15:06","15:26","15:46","16:06","16:26","16:46","17:06","17:26","17:46","18:06","18:26","18:46","19:06","19:26","19:46","20:06","20:26"] },
-          { name: "Barcelos (Campo S. José)", times: null },
-          { name: "Barcelos (Mercado)", times: null },
-          { name: "Pingo Doce / IPCA", times: ["07:08","07:28","07:48","08:08","08:28","08:48","09:08","09:28","09:48","10:08","10:28","10:48","11:08","11:28","11:48","12:08","12:28","12:48","13:08","13:28","13:48","14:08","14:28","14:48","15:08","15:28","15:48","16:08","16:28","16:48","17:08","17:28","17:48","18:08","18:28","18:48","19:08","19:28","19:48","20:08","20:28"] },
-          { name: "Lidl", times: null },
-          { name: "Esc. António Fogaça", times: null },
-          { name: "Casal de Nil", times: null },
-          { name: "ACIBE / Sonix", times: ["07:11","07:31","07:51","08:11","08:31","08:51","09:11","09:31","09:51","10:11","10:31","10:51","11:11","11:31","11:51","12:11","12:31","12:51","13:11","13:31","13:51","14:11","14:31","14:51","15:11","15:31","15:51","16:11","16:31","16:51","17:11","17:31","17:51","18:11","18:31","18:51","19:11","19:31","19:51","20:11","20:31"] },
-          { name: "Continente", times: ["07:13","07:33","07:53","08:13","08:33","08:53","09:13","09:33","09:53","10:13","10:33","10:53","11:13","11:33","11:53","12:13","12:33","12:53","13:13","13:33","13:53","14:13","14:33","14:53","15:13","15:33","15:53","16:13","16:33","16:53","17:13","17:33","17:53","18:13","18:33","18:53","19:13","19:33","19:53","20:13","20:33"] },
-          { name: "Vila Frescainha (EB1 Paço Velho)", times: ["07:15","07:35","07:55","08:15","08:35","08:55","09:15","09:35","09:55","10:15","10:35","10:55","11:15","11:35","11:55","12:15","12:35","12:55","13:15","13:35","13:55","14:15","14:35","14:55","15:15","15:35","15:55","16:15","16:35","16:55","17:15","17:35","17:55","18:15","18:35","18:55","19:15","19:35","19:55","20:15","20:35"] },
-        ]
-      },
-      {
-        label: "Vila Frescaínha → Arcozelo",
-        stops: [
-          { name: "Vila Frescainha (EB1 Paço Velho)", times: ["06:55","07:15","07:35","07:55","08:15","08:35","08:55","09:15","09:35","09:55","10:15","10:35","10:55","11:15","11:35","11:55","12:15","12:35","12:55","13:15","13:35","13:55","14:15","14:35","14:55","15:15","15:35","15:55","16:15","16:35","16:55","17:15","17:35","17:55","18:15","18:35","18:55","19:15","19:35","19:55","20:15"] },
-          { name: "Vila Frescainha (Calçada da Adega)", times: null },
-          { name: "Adega", times: null },
-          { name: "Vila Frescainha (R. de S. Simão)", times: ["06:59","07:19","07:39","07:59","08:19","08:39","08:59","09:19","09:39","09:59","10:19","10:39","10:59","11:19","11:39","11:59","12:19","12:39","12:59","13:19","13:39","13:59","14:19","14:39","14:59","15:19","15:39","15:59","16:19","16:39","16:59","17:19","17:39","17:59","18:19","18:39","18:59","19:19","19:39","19:59","20:19"] },
-          { name: "Vila Frescainha (Senra)", times: null },
-          { name: "ACIBE / Sonix", times: ["07:03","07:23","07:43","08:03","08:23","08:43","09:03","09:23","09:43","10:03","10:23","10:43","11:03","11:23","11:43","12:03","12:23","12:43","13:03","13:23","13:43","14:03","14:23","14:43","15:03","15:23","15:43","16:03","16:23","16:43","17:03","17:23","17:43","18:03","18:23","18:43","19:03","19:23","19:43","20:03","20:23"] },
-          { name: "Casal de Nil", times: null },
-          { name: "Esc. António Fogaça", times: null },
-          { name: "Lidl", times: null },
-          { name: "Barcelos (São José)", times: ["07:08","07:28","07:48","08:08","08:28","08:48","09:08","09:28","09:48","10:08","10:28","10:48","11:08","11:28","11:48","12:08","12:28","12:48","13:08","13:28","13:48","14:08","14:28","14:48","15:08","15:28","15:48","16:08","16:28","16:48","17:08","17:28","17:48","18:08","18:28","18:48","19:08","19:28","19:48","20:08","20:28"] },
-          { name: "Bonfim", times: null },
-          { name: "Barcelos (Jardim Velho)", times: null },
-          { name: "Barcelos (Combatentes)", times: ["07:12","07:32","07:52","08:12","08:32","08:52","09:12","09:32","09:52","10:12","10:32","10:52","11:12","11:32","11:52","12:12","12:32","12:52","13:12","13:32","13:52","14:12","14:32","14:52","15:12","15:32","15:52","16:12","16:32","16:52","17:12","17:32","17:52","18:12","18:32","18:52","19:12","19:32","19:52","20:12","20:32"] },
-          { name: "Barcelos (Capuchinhos)", times: null },
-          { name: "Barcelos (Albergaria)", times: null },
-          { name: "Barcelos (Torre Ampal)", times: null },
-          { name: "Barcelos (Estação)", times: ["07:16","07:36","07:56","08:16","08:36","08:56","09:16","09:36","09:56","10:16","10:36","10:56","11:16","11:36","11:56","12:16","12:36","12:56","13:16","13:36","13:56","14:16","14:36","14:56","15:16","15:36","15:56","16:16","16:36","16:56","17:16","17:36","17:56","18:16","18:36","18:56","19:16","19:36","19:56","20:16","20:36"] },
-          { name: "Barcelos (Bolivar)", times: null },
-          { name: "Arcozelo (Rotunda das Calçadas)", times: null },
-          { name: "Arcozelo (Junta de Freguesia)", times: ["07:20","07:40","08:00","08:20","08:40","09:00","09:20","09:40","10:00","10:20","10:40","11:00","11:20","11:40","12:00","12:20","12:40","13:00","13:20","13:40","14:00","14:20","14:40","15:00","15:20","15:40","16:00","16:20","16:40","17:00","17:20","17:40","18:00","18:20","18:40","19:00","19:20","19:40","20:00","20:20","20:40"] },
-        ]
-      }
-    ]
-  },
-  U3: {
-    name: "Lijó ↔ IPCA",
-    directions: [
-      {
-        label: "Lijó → IPCA",
-        stops: [
-          { name: "Lijó (Escolas)", times: ["06:45","07:15","07:40","07:45","08:15","08:45","09:15","09:45","10:15","10:45","11:15","11:45","12:15","12:45","13:15","13:45","14:15","14:45","15:15","15:45","16:15","16:45","17:15","17:45","18:15","18:45","19:15","19:45"] },
-          { name: "Lijó (Senhora da Abadia)", times: null },
-          { name: "Nova do Corujo", times: null },
-          { name: "Arcozelo (Corujo)", times: null },
-          { name: "Igreja II", times: null },
-          { name: "Igreja I", times: ["06:49","07:19","07:44","07:49","08:19","08:49","09:19","09:49","10:19","10:49","11:19","11:49","12:19","12:49","13:19","13:49","14:19","14:49","15:19","15:49","16:19","16:49","17:19","17:49","18:19","18:49","19:19","19:49"] },
-          { name: "EM557 / Ribeiro", times: null },
-          { name: "Ribeiro", times: null },
-          { name: "Arcozelo (Penedos)", times: null },
-          { name: "Arcozelo (Bela Vista)", times: null },
-          { name: "Dom João Afonso (C.E. Arcozelo)", times: null },
-          { name: "Bem-Me-Queres", times: null },
-          { name: "Felisberto B. R. Castro", times: ["06:53","07:23","07:48","07:53","08:23","08:53","09:23","09:53","10:23","10:53","11:23","11:53","12:23","12:53","13:23","13:53","14:23","14:53","15:23","15:53","16:23","16:53","17:23","17:53","18:23","18:53","19:23","19:53"] },
-          { name: "Bajão", times: null },
-          { name: "Barcelos (Central / Camionagem)", times: ["06:58","07:28","07:53","07:58","08:28","08:58","09:28","09:58","10:28","10:58","11:28","11:58","12:28","12:58","13:28","13:58","14:28","14:58","15:28","15:58","16:28","16:58","17:28","17:58","18:28","18:58","19:28","19:58"] },
-          { name: "Pontes I", times: null },
-          { name: "Esc. Sec. Barcelos", times: ["07:00","07:30","07:55","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"] },
-          { name: "Tribunal", times: null },
-          { name: "Segurança Social", times: null },
-          { name: "H. Trofa Saúde", times: null },
-          { name: "Barcelos (Cemitério)", times: null },
-          { name: "Valpaços", times: null },
-          { name: "Barcelos (Estação)", times: ["07:05","07:35","08:00","08:05","08:35","09:05","09:35","10:05","10:35","11:05","11:35","12:05","12:35","13:05","13:35","14:05","14:35","15:05","15:35","16:05","16:35","17:05","17:35","18:05","18:35","19:05","19:35","20:05"] },
-          { name: "Barcelos (Torre Ampal)", times: null },
-          { name: "Barcelos (Albergaria)", times: null },
-          { name: "Barcelos (Capuchinhos)", times: null },
-          { name: "Barcelos (Combatentes)", times: ["07:08","07:38","08:03","08:08","08:38","09:08","09:38","10:08","10:38","11:08","11:38","12:08","12:38","13:08","13:38","14:08","14:38","15:08","15:38","16:08","16:38","17:08","17:38","18:08","18:38","19:08","19:38","20:08"] },
-          { name: "Escola Alcaides de Faria", times: null },
-          { name: "Barcelos (Finanças)", times: null },
-          { name: "Abade Paes", times: null },
-          { name: "Zona Comercial", times: null },
-          { name: "Barcelos (São José)", times: ["07:13","07:43","08:08","08:13","08:43","09:13","09:43","10:13","10:43","11:13","11:43","12:13","12:43","13:13","13:43","14:13","14:43","15:13","15:43","16:13","16:43","17:13","17:43","18:13","18:43","19:13","19:43","20:13"] },
-          { name: "Lidl", times: null },
-          { name: "Queimado I (IPCA)", times: ["07:15","07:45","08:10","08:15","08:45","09:15","09:45","10:15","10:45","11:15","11:45","12:15","12:45","13:15","13:45","14:15","14:45","15:15","15:45","16:15","16:45","17:15","17:45","18:15","18:45","19:15","19:45","20:15"] },
-        ]
-      },
-      {
-        label: "IPCA → Lijó",
-        stops: [
-          { name: "Queimado I (IPCA)", times: ["06:45","07:15","07:45","08:15","08:45","09:15","09:45","10:15","10:45","11:15","11:45","12:15","12:45","13:15","13:45","14:15","14:45","15:15","15:45","16:15","16:45","17:15","17:45","18:15","18:45","19:15","19:45"] },
-          { name: "Queimado II", times: null },
-          { name: "Rio de Vila", times: null },
-          { name: "Igreja (V.F.S. Martinho)", times: null },
-          { name: "Arranjinho", times: null },
-          { name: "Casal de Nil", times: null },
-          { name: "Lidl", times: null },
-          { name: "Barcelos (São José)", times: ["06:53","07:23","07:53","08:23","08:53","09:23","09:53","10:23","10:53","11:23","11:53","12:23","12:53","13:23","13:53","14:23","14:53","15:23","15:53","16:23","16:53","17:23","17:53","18:23","18:53","19:23","19:53"] },
-          { name: "Zona Comercial", times: null },
-          { name: "Abade Paes", times: null },
-          { name: "Barcelos (Finanças)", times: null },
-          { name: "Escola Alcaides de Faria", times: null },
-          { name: "Barcelos (Combatentes)", times: ["06:57","07:27","07:57","08:27","08:57","09:27","09:57","10:27","10:57","11:27","11:57","12:27","12:57","13:27","13:57","14:27","14:57","15:27","15:57","16:27","16:57","17:27","17:57","18:27","18:57","19:27","19:57"] },
-          { name: "Barcelos (Capuchinhos)", times: null },
-          { name: "Barcelos (Albergaria)", times: null },
-          { name: "Barcelos (Torre Ampal)", times: null },
-          { name: "Barcelos (Estação)", times: ["06:59","07:29","07:59","08:29","08:59","09:29","09:59","10:29","10:59","11:29","11:59","12:29","12:59","13:29","13:59","14:29","14:59","15:29","15:59","16:29","16:59","17:29","17:59","18:29","18:59","19:29","19:59"] },
-          { name: "Barcelos (Bolivar)", times: null },
-          { name: "Bajão", times: null },
-          { name: "Felisberto B. R. Castro", times: ["07:05","07:35","08:05","08:35","09:05","09:35","10:05","10:35","11:05","11:35","12:05","12:35","13:05","13:35","14:05","14:35","15:05","15:35","16:05","16:35","17:05","17:35","18:05","18:35","19:05","19:35","20:05"] },
-          { name: "Bem-Me-Queres", times: null },
-          { name: "Dom João Afonso (C.E. Arcozelo)", times: null },
-          { name: "Arcozelo (Bela Vista)", times: null },
-          { name: "Arcozelo (Penedos)", times: null },
-          { name: "Ribeiro", times: null },
-          { name: "EM557 / Ribeiro", times: null },
-          { name: "Igreja I", times: ["07:10","07:40","08:10","08:40","09:10","09:40","10:10","10:40","11:10","11:40","12:10","12:40","13:10","13:40","14:10","14:40","15:10","15:40","16:10","16:40","17:10","17:40","18:10","18:40","19:10","19:40","20:10"] },
-          { name: "Igreja II", times: null },
-          { name: "Arcozelo (Corujo)", times: null },
-          { name: "Nova do Corujo", times: null },
-          { name: "Lijó (Escolas)", times: ["07:15","07:45","08:15","08:45","09:15","09:45","10:15","10:45","11:15","11:45","12:15","12:45","13:15","13:45","14:15","14:45","15:15","15:45","16:15","16:45","17:15","17:45","18:15","18:45","19:15","19:45","20:15"] },
-        ]
-      }
-    ]
-  },
-  U4: {
-    name: "S. Veríssimo ↔ Barcelos",
-    directions: [
-      {
-        label: "Barcelos → S. Veríssimo",
-        stops: [
-          { name: "Barcelos (Estação)", times: ["07:00","07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00"] },
-          { name: "Barcelos (Bolivar)", times: null },
-          { name: "Escola Gonçalo Nunes", times: null },
-          { name: "Escola Alcaides de Faria", times: null },
-          { name: "Barcelos (Combatentes)", times: ["07:04","07:34","08:04","08:34","09:04","09:34","10:04","10:34","11:04","11:34","12:04","12:34","13:04","13:34","14:04","14:34","15:04","15:34","16:04","16:34","17:04","17:34","18:04","18:34","19:04","19:34","20:04"] },
-          { name: "Barcelos (Sr. da Cruz)", times: null },
-          { name: "Bagoeira / Campo da Feira", times: null },
-          { name: "Tribunal", times: null },
-          { name: "Esc. Sec. Barcelos", times: ["07:09","07:39","08:09","08:39","09:09","09:39","10:09","10:39","11:09","11:39","12:09","12:39","13:09","13:39","14:09","14:39","15:09","15:39","16:09","16:39","17:09","17:39","18:09","18:39","19:09","19:39","20:09"] },
-          { name: "Pontes I", times: null },
-          { name: "S. Veríssimo (Conservatório)", times: ["07:15","07:45","08:15","08:45","09:15","09:45","10:15","10:45","11:15","11:45","12:15","12:45","13:15","13:45","14:15","14:45","15:15","15:45","16:15","16:45","17:15","17:45","18:15","18:45","19:15","19:45","20:15"] },
-          { name: "Cávado", times: null },
-          { name: "Santa Máxima", times: null },
-          { name: "Cândido Martins", times: null },
-          { name: "S. Veríssimo (Barreiras)", times: ["07:19","07:49","08:19","08:49","09:19","09:49","10:19","10:49","11:19","11:49","12:19","12:49","13:19","13:49","14:19","14:49","15:19","15:49","16:19","16:49","17:19","17:49","18:19","18:49","19:19","19:49","20:19"] },
-          { name: "S. Veríssimo (EB1 Pontes III)", times: null },
-        ]
-      },
-      {
-        label: "S. Veríssimo → Barcelos",
-        stops: [
-          { name: "S. Veríssimo (Conservatório)", times: ["07:22","07:52","08:22","08:52","09:22","09:52","10:22","10:52","11:22","11:52","12:22","12:52","13:22","13:52","14:22","14:52","15:22","15:52","16:22","16:52","17:22","17:52","18:22","18:52","19:22","19:52","20:22"] },
-          { name: "Pontes I", times: null },
-          { name: "Valpaços", times: null },
-          { name: "Barcelos (Estação)", times: ["07:30","08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30"] },
-        ]
-      }
-    ]
-  },
-  U5: {
-    name: "Barcelinhos ↔ Barcelos",
-    directions: [
-      {
-        label: "Barcelinhos → Barcelos",
-        stops: [
-          { name: "Esc. Rosa Ramalho", times: ["07:15","08:15","09:15","10:15","11:15","12:15","13:15","14:15","15:15","16:15","17:15","18:15","19:15"] },
-          { name: "Sr. do Galo", times: null },
-          { name: "Esc. Sec. de Barcelinhos", times: null },
-          { name: "Centro de Saúde de Barcelinhos", times: ["07:20","08:20","09:20","10:20","11:20","12:20","13:20","14:20","15:20","16:20","17:20","18:20","19:20"] },
-          { name: "Sobreiros", times: null },
-          { name: "Santa Eugénia (E.Leclerc)", times: ["07:24","08:24","09:24","10:24","11:24","12:24","13:24","14:24","15:24","16:24","17:24","18:24","19:24"] },
-          { name: "Santa Eugénia I (Rua Sto. António)", times: null },
-          { name: "Santa Eugénia (Ponte)", times: null },
-          { name: "Santa Eugénia III (Poça)", times: null },
-          { name: "Santa Eugénia (EB)", times: null },
-          { name: "Santa Eugénia V (Igreja)", times: ["07:26","08:26","09:26","10:26","11:26","12:26","13:26","14:26","15:26","16:26","17:26","18:26","19:26"] },
-          { name: "Cruz. Fonte Fria (Macieiras)", times: null },
-          { name: "Rio Covo (Moinhos)", times: null },
-          { name: "Santa Eugénia (Rio Covo / Lobagueira)", times: null },
-          { name: "Santa Eugénia (Casais / Auchan)", times: ["07:30","08:30","09:30","10:30","11:30","12:30","13:30","14:30","15:30","16:30","17:30","18:30","19:30"] },
-          { name: "Cruz. Fonte Fria (Macieiras) ↺", times: null },
-          { name: "Rio Covo (Moinhos) ↺", times: null },
-          { name: "Santa Eugénia V (Igreja) ↺", times: ["07:33","08:33","09:33","10:33","11:33","12:33","13:33","14:33","15:33","16:33","17:33","18:33","19:33"] },
-          { name: "Esc. Sec. Barcelos", times: ["07:40","08:40","09:40","10:40","11:40","12:40","13:40","14:40","15:40","16:40","17:40","18:40","19:40"] },
-          { name: "Tribunal", times: null },
-          { name: "Segurança Social", times: null },
-          { name: "Bagoeira / Campo da Feira", times: ["07:43","08:43","09:43","10:43","11:43","12:43","13:43","14:43","15:43","16:43","17:43","18:43","19:43"] },
-          { name: "Barcelos (Sr. da Cruz)", times: null },
-          { name: "Barcelos (Combatentes)", times: ["07:45","08:45","09:45","10:45","11:45","12:45","13:45","14:45","15:45","16:45","17:45","18:45","19:45"] },
-          { name: "Barcelos (Capuchinhos)", times: null },
-          { name: "Barcelos (Pavilhão Municipal)", times: null },
-          { name: "Barcelos (Cemitério)", times: ["07:48","08:48","09:48","10:48","11:48","12:48","13:48","14:48","15:48","16:48","17:48","18:48","19:48"] },
-        ]
-      },
-      {
-        label: "Barcelos → Barcelinhos",
-        stops: [
-          { name: "Barcelos (Cemitério)", times: ["07:48","08:48","09:48","10:48","11:48","12:48","13:48","14:48","15:48","16:48","17:48","18:48","19:48"] },
-          { name: "Santa Eugénia (Ponte)", times: null },
-          { name: "Santa Eugénia III (Poça)", times: null },
-          { name: "Santa Eugénia (EB)", times: null },
-          { name: "Santa Eugénia V (Igreja)", times: ["07:53","08:53","09:53","10:53","11:53","12:53","13:53","14:53","15:53","16:53","17:53","18:53","19:53"] },
-          { name: "Cruz. Fonte Fria (Macieiras)", times: null },
-          { name: "Rio Covo (Moinhos)", times: null },
-          { name: "Santa Eugénia (Rio Covo / Lobagueira)", times: null },
-          { name: "Santa Eugénia (Casais / Auchan)", times: ["07:57","08:57","09:57","10:57","11:57","12:57","13:57","14:57","15:57","16:57","17:57","18:57","19:57"] },
-          { name: "Santa Eugénia (Rio Covo / Lobagueira) ↺", times: null },
-          { name: "Rio Covo (Moinhos) ↺", times: null },
-          { name: "Cruz. Fonte Fria (Macieiras) ↺", times: null },
-          { name: "Santa Eugénia V (Igreja) ↺", times: ["08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"] },
-          { name: "Santa Eugénia (EB) ↺", times: null },
-          { name: "Santa Eugénia III (Poça) ↺", times: null },
-          { name: "Santa Eugénia (Ponte) ↺", times: null },
-          { name: "Santa Eugénia I (Rua Sto. António)", times: null },
-          { name: "Santa Eugénia (E.Leclerc)", times: ["08:05","09:05","10:05","11:05","12:05","13:05","14:05","15:05","16:05","17:05","18:05","19:05","20:05"] },
-          { name: "Sobreiros", times: null },
-          { name: "Centro de Saúde de Barcelinhos", times: ["08:08","09:08","10:08","11:08","12:08","13:08","14:08","15:08","16:08","17:08","18:08","19:08","20:08"] },
-          { name: "Esc. Sec. de Barcelinhos", times: null },
-          { name: "Barcelinhos (Igreja / Brito Limpo)", times: null },
-          { name: "Barcelinhos (Largo do Tanque)", times: null },
-          { name: "Barcelinhos (Mira Rio)", times: null },
-          { name: "Esc. Rosa Ramalho", times: ["08:15","09:15","10:15","11:15","12:15","13:15","14:15","15:15","16:15","17:15","18:15","19:15","20:15"] },
-        ]
-      }
-    ]
-  }
-};
-
-// ─── STATE ────────────────────────────────────────────────────────────────────
-let selectedLine = null, selectedDir = 0, selectedStop = null;
-
-// ─── TIME UTILS ───────────────────────────────────────────────────────────────
-function nowMinutes() {
-  const d = new Date();
-  return d.getHours() * 60 + d.getMinutes();
-}
-function parseTime(t) {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-function minsToStr(mins) {
-  const h = Math.floor(mins / 60).toString().padStart(2,'0');
-  const m = (mins % 60).toString().padStart(2,'0');
-  return `${h}:${m}`;
-}
-function formatCountdown(mins) {
-  if (mins <= 0) return 'agora';
-  if (mins === 1) return '1 min';
-  if (mins < 60) return `${mins} min`;
-  const h = Math.floor(mins / 60), m = mins % 60;
-  return m === 0 ? `${h}h` : `${h}h${m}m`;
-}
-
-// Interpolação linear entre paragens com horário
-function getApproxTimes(stops, idx) {
-  let prevIdx = -1, nextIdx = -1;
-  for (let i = idx - 1; i >= 0; i--) {
-    if (stops[i].times) { prevIdx = i; break; }
-  }
-  for (let i = idx + 1; i < stops.length; i++) {
-    if (stops[i].times) { nextIdx = i; break; }
-  }
-  if (prevIdx === -1 && nextIdx === -1) return null;
-  if (prevIdx === -1) return { times: stops[nextIdx].times, approx: true };
-  if (nextIdx === -1) return { times: stops[prevIdx].times, approx: true };
-
-  const prev = stops[prevIdx].times;
-  const next = stops[nextIdx].times;
-  const frac = (idx - prevIdx) / (nextIdx - prevIdx);
-  const len = Math.min(prev.length, next.length);
-  const result = [];
-  for (let i = 0; i < len; i++) {
-    const pMin = parseTime(prev[i]);
-    const nMin = parseTime(next[i]);
-    result.push(minsToStr(Math.round(pMin + frac * (nMin - pMin))));
-  }
-  return { times: result, approx: true };
-}
-
-function getEffectiveTimes(stops, idx) {
-  const s = stops[idx];
-  if (s.times) return { times: s.times, approx: false };
-  return getApproxTimes(stops, idx);
-}
-
-function getNextTime(times) {
-  const now = nowMinutes();
-  return times ? times.find(t => parseTime(t) >= now) || null : null;
-}
-
-// ─── CLOCK ────────────────────────────────────────────────────────────────────
-function updateClock() {
-  const d = new Date();
-  document.getElementById('clock').textContent =
-    String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-  const view = document.querySelector('[id^="view-"]:not(.hidden)');
-  if (view && view.id === 'view-stops') renderStopList();
-  if (view && view.id === 'view-times') renderResults();
-}
-
-// ─── VIEWS ────────────────────────────────────────────────────────────────────
-function showView(id) {
-  ['view-lines','view-stops','view-times'].forEach(v =>
-    document.getElementById(v).classList.toggle('hidden', v !== id));
-}
-function showLines() {
-  selectedLine = null; selectedStop = null; selectedDir = 0;
-  showView('view-lines');
-}
-function showStops() {
-  selectedStop = null;
-  showView('view-stops');
-  renderDirToggle();
-  renderStopList();
-}
-function showTimes(stopIdx) {
-  selectedStop = stopIdx;
-  document.getElementById('breadcrumb-line').textContent =
-    `${selectedLine} · ${selectedDir === 0 ? 'Ida' : 'Volta'}`;
-  showView('view-times');
-  renderResults();
-}
-
-// ─── RENDER: Lines ────────────────────────────────────────────────────────────
-function renderLines() {
-  document.getElementById('line-grid').innerHTML = Object.entries(DATA).map(([id, d]) =>
-    `<div class="line-card" onclick="selectLine('${id}')">
-      <div class="line-num">${id}</div>
-      <div class="line-desc">${d.name}</div>
-    </div>`
-  ).join('');
-}
-function selectLine(id) {
-  selectedLine = id; selectedDir = 0; selectedStop = null;
-  showStops();
-}
-
-// ─── RENDER: Direction ────────────────────────────────────────────────────────
-function renderDirToggle() {
-  document.getElementById('dir-toggle').innerHTML =
-    DATA[selectedLine].directions.map((d, i) =>
-      `<button class="dir-btn${i === selectedDir ? ' active' : ''}" onclick="selectDir(${i})">${d.label}</button>`
-    ).join('');
-}
-function selectDir(i) {
-  selectedDir = i;
-  renderDirToggle();
-  renderStopList();
-}
-
-// ─── RENDER: Stops ────────────────────────────────────────────────────────────
-function renderStopList() {
-  const stops = DATA[selectedLine].directions[selectedDir].stops;
-  const now = nowMinutes();
-  document.getElementById('stop-list').innerHTML = stops.map((s, i) => {
-    const eff = getEffectiveTimes(stops, i);
-    const next = eff ? getNextTime(eff.times) : null;
-    let badge = '', cls = 'muted', extra = '';
-
-    if (next) {
-      const diff = parseTime(next) - now;
-      badge = diff <= 0 ? 'agora' : formatCountdown(diff);
-      cls = diff <= 2 ? 'red' : diff <= 10 ? 'yellow' : 'green';
-      if (eff.approx) extra = `<span class="approx-badge">~aprox.</span>`;
-    } else {
-      badge = 'sem mais';
-    }
-
-    const noTimesClass = !s.times ? ' no-times' : '';
-    return `<div class="stop-item${noTimesClass}" onclick="showTimes(${i})">
-      <div class="stop-name">${s.name}${extra}</div>
-      <span class="stop-next ${cls}">${badge}</span>
-    </div>`;
-  }).join('');
-}
-
-// ─── RENDER: Results ──────────────────────────────────────────────────────────
-function renderResults() {
-  const stops = DATA[selectedLine].directions[selectedDir].stops;
-  const stop = stops[selectedStop];
-  const eff = getEffectiveTimes(stops, selectedStop);
-  const now = nowMinutes();
-  const panel = document.getElementById('results-panel');
-
-  if (!eff) {
-    panel.innerHTML = `<div class="results-title">${stop.name}</div>
-      <p class="no-more">Sem dados de horário disponíveis para esta paragem.</p>`;
-    return;
-  }
-
-  const { times, approx } = eff;
-  const upcoming = times.filter(t => parseTime(t) >= now);
-  const past = times.filter(t => parseTime(t) < now);
-
-  let html = `<div class="results-title">${stop.name}</div>`;
-
-  if (approx) {
-    html += `<div class="approx-notice">
-      ⚠️ Esta paragem não tem horário publicado. Os tempos são <strong>estimativas</strong> calculadas com base nas paragens vizinhas. Chegue alguns minutos mais cedo.
-    </div>`;
-  }
-
-  if (upcoming.length === 0) {
-    html += `<p class="no-more">Sem mais autocarros hoje nesta paragem.</p>`;
-  } else {
-    const next = upcoming[0];
-    const diff = parseTime(next) - now;
-    html += `<div class="next-bus-hero">
+  <!-- Header -->
+  <header class="header">
+    <div class="header-inner">
       <div>
-        <div class="next-bus-label">Próximo autocarro</div>
-        <div class="next-bus-time">${next}</div>
+        <div class="app-title">Transportes Barcelos</div>
+        <div class="app-subtitle">Mini-autocarros urbanos</div>
       </div>
-      <div style="text-align:right">
-        <div class="next-bus-min">${diff <= 0 ? 'Agora' : formatCountdown(diff)}</div>
-        <div class="next-bus-label">espera</div>
-      </div>
-    </div>`;
+      <span class="clock" id="clock">--:--</span>
+    </div>
+  </header>
 
-    if (upcoming.length > 1) {
-      html += `<div style="margin-top:12px">
-        <div class="results-title" style="margin-bottom:8px">Seguintes</div>
-        <div class="time-list">
-          ${upcoming.slice(1).map(t => `<span class="time-chip upcoming">${t}</span>`).join('')}
+  <!-- 3-column layout -->
+  <div class="layout">
+
+    <!-- Col 1: Lines + Direction -->
+    <div class="panel panel-lines" id="panel-lines">
+      <div class="panel-header">
+        <div class="panel-title">Linha</div>
+      </div>
+      <div class="panel-body">
+        <div class="line-grid" id="line-grid"></div>
+        <div id="dir-toggle"></div>
+      </div>
+    </div>
+
+    <!-- Col 2: Stops -->
+    <div class="panel panel-stops hidden" id="panel-stops">
+      <!-- Mobile breadcrumb -->
+      <div class="breadcrumb" onclick="goLines()">
+        <span class="breadcrumb-back">‹</span>
+        <span class="breadcrumb-text">Linhas</span>
+      </div>
+      <div class="panel-header">
+        <div class="panel-title">Paragem</div>
+      </div>
+      <div class="panel-body">
+        <div class="stop-list" id="stop-list"></div>
+      </div>
+    </div>
+
+    <!-- Col 3: Results -->
+    <div class="panel panel-results hidden" id="panel-results">
+      <!-- Mobile breadcrumb -->
+      <div class="breadcrumb" onclick="goStops()">
+        <span class="breadcrumb-back">‹</span>
+        <span class="breadcrumb-text">Paragens</span>
+      </div>
+      <div class="panel-header">
+        <div class="panel-title" id="results-panel-title">Horários</div>
+      </div>
+      <div class="panel-body" id="results-body">
+        <div class="empty-state">
+          <div class="empty-icon">🚌</div>
+          <div class="empty-text">Seleciona uma paragem</div>
+          <div class="empty-sub">para ver os próximos autocarros</div>
         </div>
-      </div>`;
-    }
-  }
-
-  if (past.length > 0) {
-    html += `<div style="margin-top:14px">
-      <div class="results-title" style="margin-bottom:8px">Já passaram</div>
-      <div class="time-list">
-        ${past.map(t => `<span class="time-chip past">${t}</span>`).join('')}
       </div>
-    </div>`;
-  }
+    </div>
 
-  html += `<div class="disclaimer">Horários estimados — chegue 10 min antes. Sujeito a alterações. Atualizado em 12-09-2025.</div>`;
-  panel.innerHTML = html;
-}
+  </div>
 
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-renderLines();
-updateClock();
-setInterval(updateClock, 15000);
-</script>
+  <script type="module" src="js/app.js"></script>
 </body>
 </html>
