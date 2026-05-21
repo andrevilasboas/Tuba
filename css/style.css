@@ -139,6 +139,18 @@ html, body {
   gap: 8px;
   margin-bottom: 16px;
 }
+.line-section-label {
+  grid-column: 1 / -1;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 10px 2px 6px;
+  border-bottom: 1px solid var(--border-dim);
+  margin-bottom: 4px;
+}
+.line-section-label:first-child { padding-top: 2px; }
 .line-card {
   background: var(--surface);
   border: 1.5px solid var(--border);
@@ -156,7 +168,7 @@ html, body {
 .line-num { font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: -1px; }
 .line-desc { font-size: 10px; color: var(--muted); line-height: 1.3; font-weight: 500; }
 
-.dir-toggle { display: flex; flex-direction: column; gap: 6px; }
+.dir-toggle { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .dir-btn {
   width: 100%;
   padding: 9px 12px;
@@ -265,6 +277,17 @@ html, body {
 }
 .time-chip.upcoming { background: var(--card); color: var(--text); }
 .time-chip.past { color: var(--border); background: transparent; }
+
+.school-notice {
+  background: rgba(56,189,248,.06);
+  border: 1px solid rgba(56,189,248,.2);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
 
 .approx-notice {
   background: rgba(250,204,21,.06);

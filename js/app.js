@@ -3,8 +3,61 @@ import U2 from '../data/U2.js';
 import U3 from '../data/U3.js';
 import U4 from '../data/U4.js';
 import U5 from '../data/U5.js';
+import M20 from '../data/M20.js';
+import M21 from '../data/M21.js';
+import M22 from '../data/M22.js';
+import M23 from '../data/M23.js';
+import M24 from '../data/M24.js';
+import M27 from '../data/M27.js';
+import M28 from '../data/M28.js';
+import M29 from '../data/M29.js';
+import M30 from '../data/M30.js';
+import M31 from '../data/M31.js';
+import M32 from '../data/M32.js';
+import M33 from '../data/M33.js';
+import M38 from '../data/M38.js';
+import M39 from '../data/M39.js';
+import M40 from '../data/M40.js';
+import M41 from '../data/M41.js';
+import M42 from '../data/M42.js';
+import M43 from '../data/M43.js';
+import M44 from '../data/M44.js';
+import M45 from '../data/M45.js';
+import M46 from '../data/M46.js';
+import M47 from '../data/M47.js';
+import M48 from '../data/M48.js';
+import M50 from '../data/M50.js';
+import M51 from '../data/M51.js';
+import M52 from '../data/M52.js';
+import M53 from '../data/M53.js';
+import M54 from '../data/M54.js';
+import M55 from '../data/M55.js';
+import M56 from '../data/M56.js';
+import M65 from '../data/M65.js';
+import M66 from '../data/M66.js';
+import M67 from '../data/M67.js';
+import M68 from '../data/M68.js';
+import M69 from '../data/M69.js';
+import M70 from '../data/M70.js';
+import M71 from '../data/M71.js';
+import M72 from '../data/M72.js';
+import M73 from '../data/M73.js';
+import M74 from '../data/M74.js';
+import M75 from '../data/M75.js';
+import M76 from '../data/M76.js';
+import M77 from '../data/M77.js';
+import M78 from '../data/M78.js';
+import M87 from '../data/M87.js';
+import M88 from '../data/M88.js';
+import M89 from '../data/M89.js';
+import M91 from '../data/M91.js';
+import M92 from '../data/M92.js';
+import M93 from '../data/M93.js';
+import M94 from '../data/M94.js';
 
-const DATA = { U1, U2, U3, U4, U5 };
+const DATA_URBANOS   = { U1, U2, U3, U4, U5 };
+const DATA_MUNICIPAIS = { M20, M21, M22, M23, M24, M27, M28, M29, M30, M31, M32, M33, M38, M39, M40, M41, M42, M43, M44, M45, M46, M47, M48, M50, M51, M52, M53, M54, M55, M56, M65, M66, M67, M68, M69, M70, M71, M72, M73, M74, M75, M76, M77, M78, M87, M88, M89, M91, M92, M93, M94 };
+const DATA = { ...DATA_URBANOS, ...DATA_MUNICIPAIS };
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let selectedLine = null;
@@ -40,13 +93,20 @@ function getNextTime(times) {
 }
 
 // ── Day filter ────────────────────────────────────────────────────────────────
+function hasWeekendService(dir) {
+  return !!(dir.weekendCount || dir.hasSaturday);
+}
+
 function applyDayFilter(times, dir) {
   if (!times) return null;
   if (dayType === 'weekday') return times;
-  const count = dir?.weekendCount || 0;
-  if (count === 0) return null;
-  const sliced = times.slice(0, count);
-  return sliced.length > 0 ? sliced : null;
+  // Weekend mode
+  if (dir?.weekendCount) {
+    const sliced = times.slice(0, dir.weekendCount);
+    return sliced.length > 0 ? sliced : null;
+  }
+  if (dir?.hasSaturday) return times; // show all times (includes Saturday trips)
+  return null;
 }
 
 // ── Interpolation for stops without published times ───────────────────────────
@@ -121,14 +181,21 @@ function goResults(stopIdx) {
   showPanel('panel-results');
 }
 
-// ── Render: line grid ─────────────────────────────────────────────────────────
+// ── Render: line grid with two sections ───────────────────────────────────────
+function lineCardHTML(id, d) {
+  const active = selectedLine === id ? ' active' : '';
+  return `<div class="line-card${active}" onclick="selectLine('${id}')">
+    <div class="line-num">${id}</div>
+    <div class="line-desc">${d.name}</div>
+  </div>`;
+}
+
 function renderLineGrid() {
-  document.getElementById('line-grid').innerHTML = Object.entries(DATA).map(([id, d]) =>
-    `<div class="line-card${selectedLine === id ? ' active' : ''}" onclick="selectLine('${id}')">
-      <div class="line-num">${id}</div>
-      <div class="line-desc">${d.name}</div>
-    </div>`
-  ).join('');
+  document.getElementById('line-grid').innerHTML =
+    `<div class="line-section-label">Urbanos</div>` +
+    Object.entries(DATA_URBANOS).map(([id, d]) => lineCardHTML(id, d)).join('') +
+    `<div class="line-section-label">Municipais</div>` +
+    Object.entries(DATA_MUNICIPAIS).map(([id, d]) => lineCardHTML(id, d)).join('');
 }
 
 function selectLine(id) {
@@ -142,11 +209,15 @@ function selectLine(id) {
 // ── Render: direction toggle ──────────────────────────────────────────────────
 function renderDirToggle() {
   const el = document.getElementById('dir-toggle');
-  if (!selectedLine) { el.innerHTML = ''; return; }
+  if (!selectedLine) { el.className = ''; el.innerHTML = ''; return; }
+  el.className = 'dir-toggle';
   el.innerHTML = DATA[selectedLine].directions.map((d, i) => {
-    const wkBadge = d.weekendCount
-      ? `<span class="dir-wk-badge">${d.weekendDays || 'fim de semana'}</span>`
-      : '';
+    let wkBadge = '';
+    if (d.weekendCount) {
+      wkBadge = `<span class="dir-wk-badge">${d.weekendDays || 'fim de semana'}</span>`;
+    } else if (d.hasSaturday) {
+      wkBadge = `<span class="dir-wk-badge">sábados</span>`;
+    }
     return `<button class="dir-btn${i === selectedDir ? ' active' : ''}" onclick="selectDir(${i})">${d.label}${wkBadge}</button>`;
   }).join('');
 }
@@ -166,11 +237,11 @@ function renderStopList() {
   const stops = dir.stops;
   const el    = document.getElementById('stop-list');
 
-  if (dayType === 'weekend' && !dir.weekendCount) {
+  if (dayType === 'weekend' && !hasWeekendService(dir)) {
     el.innerHTML = `<div class="no-service-notice">
       <div class="ns-icon">🚫</div>
       <div class="ns-text">Sem serviço ao fim de semana</div>
-      <div class="ns-sub">Esta direção não tem passagens${dir.weekendDays ? '' : ' neste período'}</div>
+      <div class="ns-sub">Esta direção não tem passagens neste período</div>
     </div>`;
     return;
   }
@@ -216,10 +287,11 @@ function renderResults() {
   const eff   = getEffectiveTimes(stops, selectedStop, dir);
   const now   = nowMinutes();
   const panel = document.getElementById('results-body');
+  const isMunicipal = selectedLine.startsWith('M');
 
   document.getElementById('results-panel-title').textContent = stop.name;
 
-  if (dayType === 'weekend' && !dir.weekendCount) {
+  if (dayType === 'weekend' && !hasWeekendService(dir)) {
     panel.innerHTML = `<div class="no-service-notice">
       <div class="ns-icon">🚫</div>
       <div class="ns-text">Sem serviço ao fim de semana</div>
@@ -241,6 +313,16 @@ function renderResults() {
   if (dayType === 'weekend' && dir.weekendDays) {
     html += `<div class="weekend-notice">
       Horário de <strong>${dir.weekendDays}</strong>
+    </div>`;
+  }
+
+  if (dayType === 'weekend' && dir.hasSaturday) {
+    html += `<div class="weekend-notice">Horário de <strong>sábados</strong></div>`;
+  }
+
+  if (isMunicipal) {
+    html += `<div class="school-notice">
+      Inclui serviços de <strong>período escolar</strong> e <strong>fora do período escolar</strong>. Verifique se o autocarro circula no seu período.
     </div>`;
   }
 
